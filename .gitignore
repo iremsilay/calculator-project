@@ -1,0 +1,12 @@
+# Frontend dependencies and generated files
+node_modules/
+dist/
+coverage/
+
+# Local environment variables
+.env
+.env.*
+!.env.example
+
+# macOS files
+.DS_Store
