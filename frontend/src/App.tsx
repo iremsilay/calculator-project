@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, KeyboardEvent } from 'react';
 import { ApiError, calculate, checkHealth } from './api';
 import Display from './components/Display';
+import HowToUse from './components/HowToUse';
 import HistoryList from './components/HistoryList';
 import Keypad from './components/Keypad';
 import RequestInspector from './components/RequestInspector';
+import DeveloperPresets from './components/DeveloperPresets';
 import type { HistoryItem } from './components/types';
 
 type Mode = 'simple' | 'developer';
@@ -36,9 +38,12 @@ export default function App() {
 
   useEffect(() => () => activeRequestController.current?.abort(), []);
 
-  async function submitCalculation(event?: FormEvent<HTMLFormElement>) {
-    event?.preventDefault();
-    const value = expression.trim();
+  async function submitCalculation(
+  event?: FormEvent<HTMLFormElement>,
+  expressionOverride?: string,
+) {
+  event?.preventDefault();
+  const value = (expressionOverride ?? expression).trim();
 
     if (!value) {
       setError('Enter a mathematical expression first.');
@@ -52,6 +57,7 @@ export default function App() {
     setError('');
     setResult(null);
     setLoading(true);
+
     const payload = { expression: value };
     const started = performance.now();
 
@@ -80,9 +86,11 @@ export default function App() {
         return;
       }
 
-      const message = caught instanceof Error
-      ? caught.message
-        : 'Could not reach the calculator API.';
+      const message =
+        caught instanceof Error
+          ? caught.message
+          : 'Could not reach the calculator API.';
+
       const item: HistoryItem = {
         id: Date.now(),
         expression: value,
@@ -97,7 +105,7 @@ export default function App() {
       setHistory((items) => [item, ...items].slice(0, 8));
       setLastRequest(item);
     } finally {
-      // Eski isteğin finally bloğu daha yeni isteğin loading durumunu bozmamalı.
+      // Eski isteğin finally bloğu yeni isteğin loading durumunu değiştirmemeli.
       if (activeRequestController.current === controller) {
         activeRequestController.current = null;
         setLoading(false);
@@ -124,13 +132,29 @@ export default function App() {
     } else if (key === 'CE') {
       setExpression((current) => current.slice(0, -1));
     } else if (key === '√') {
-      setExpression((current) => current.trim() ? `sqrt(${current})` : 'sqrt(');
+      setExpression((current) =>
+        current.trim() ? `sqrt(${current})` : 'sqrt(',
+      );
     } else if (key === '±') {
-      setExpression((current) => current.startsWith('-(') && current.endsWith(')')
-        ? current.slice(2, -1)
-        : current ? `-(${current})` : '-');
+      setExpression((current) =>
+        current.startsWith('-(') && current.endsWith(')')
+          ? current.slice(2, -1)
+          : current
+            ? `-(${current})`
+            : '-',
+      );
     } else {
-      const token = key === '×' ? '*' : key === '÷' ? '/' : key === '−' ? '-' : key === 'xʸ' ? '^' : key;
+      const token =
+        key === '×'
+          ? '*'
+          : key === '÷'
+            ? '/'
+            : key === '−'
+              ? '-'
+              : key === 'xʸ'
+                ? '^'
+                : key;
+
       setExpression((current) => current + token);
     }
   }
@@ -153,60 +177,137 @@ export default function App() {
   function clearHistory() {
     setHistory([]);
   }
+  function handlePresetSelect(preset: string) {
+  setExpression(preset);
+  setResult(null);
+  setError('');
+  void submitCalculation(undefined, preset);
+}
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell ${mode === 'developer' ? 'developer-view' : ''}`}>
       <header className="topbar">
-        <div className="brand-block"><h1>Calcrest</h1></div>
-        <div className="toolbar">
-          <button type="button" className={mode === 'simple' ? 'active' : ''} onClick={() => setMode('simple')}>
-            Simple
-          </button>
-          <button type="button" className={mode === 'developer' ? 'active' : ''} onClick={() => setMode('developer')}>
-            Developer
-          </button>
+        <div className="brand-lockup">
+          <h1 className="brand">Calcrest</h1>
+          <span className="brand-slogan">
+            REST API inside. A calmer way to calculate.
+          </span>
+        </div>
+
+        <div className="topbar-actions">
+          <div className="mode-switch" role="group" aria-label="Calculator mode">
+            <button
+              type="button"
+              className={mode === 'simple' ? 'selected' : ''}
+              onClick={() => setMode('simple')}
+            >
+              Simple
+            </button>
+            <button
+              type="button"
+              className={mode === 'developer' ? 'selected' : ''}
+              onClick={() => setMode('developer')}
+            >
+              Developer
+            </button>
+          </div>
+
           <button
             type="button"
-            className="theme-toggle"
-            onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')}
+            className="theme-button"
+            onClick={() =>
+              setTheme((current) => (current === 'light' ? 'dark' : 'light'))
+            }
+            aria-label={
+              theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'
+            }
+            title={
+              theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'
+            }
           >
-            {theme === 'light' ? 'Dark' : 'Light'} mode
+            <span aria-hidden="true">{theme === 'light' ? '☾' : '☀'}</span>
           </button>
         </div>
       </header>
 
-      <section className="calculator-panel">
-        <form onSubmit={submitCalculation} className="expression-form">
-          <Display
-            expression={expression}
-            result={result}
-            loading={loading}
-            onExpressionChange={handleExpressionChange}
-            onKeyDown={handleKeyDown}
-          />
-          {error && <p className="error-message" role="alert">{error}</p>}
-          <Keypad onPressKey={handlePressKey} />
-          {mode === 'developer' && (
-            <div className="form-actions">
-              <button type="submit" disabled={loading}>{loading ? 'Sending…' : 'Send POST'}</button>
-              <button type="button" onClick={reset}>Reset</button>
+      <div className="main-content">
+        <section className="workspace">
+          <section className="calculator-card" aria-label="Calculator">
+            <div className="card-heading">
+              <h2 className="calculator-title">Calculator</h2>
+              {mode === 'developer' && (
+                <span className="endpoint-chip">
+                  <span className="method">POST</span> /calculate
+                </span>
+              )}
             </div>
-          )}
-        </form>
 
-        {mode === 'developer' && (
-          <aside className="developer-panel" aria-label="Request inspector and history">
-            <RequestInspector lastRequest={lastRequest} expression={expression} />
-            <HistoryList items={history} variant="developer" onClear={clearHistory} />
+            <form onSubmit={submitCalculation}>
+              <Display
+                expression={expression}
+                result={result}
+                loading={loading}
+                onExpressionChange={handleExpressionChange}
+                onKeyDown={handleKeyDown}
+              />
+
+              {error && (
+                <p className="error-message" role="alert">
+                  {error}
+                </p>
+              )}
+
+              <Keypad onPressKey={handlePressKey} />
+
+              {mode === 'developer' && (
+                <div className="form-actions">
+                  <button
+                    className="calculate-button"
+                    type="submit"
+                    disabled={loading}
+                  >
+                    {loading ? 'Sending…' : 'Send POST'}
+                  </button>
+                  <button
+                    className="reset-button"
+                    type="button"
+                    onClick={reset}
+                  >
+                    Reset
+                  </button>
+                </div>
+              )}
+            </form>
+          </section>
+
+          <aside
+            className={mode === 'developer' ? 'inspector' : 'simple-sidebar'}
+            aria-label={
+              mode === 'developer'
+                ? 'HTTP request inspector'
+                : 'Calculator help and history'
+            }
+          >
+            <HowToUse showPrecedence={mode === 'simple'} />
+            {mode === 'developer' && (
+  <DeveloperPresets onSelect={handlePresetSelect} />
+)}
+
+            {mode === 'developer' && (
+              <RequestInspector
+                lastRequest={lastRequest}
+                expression={expression}
+              />
+            )}
+
+            <HistoryList
+              items={history}
+              variant={mode}
+              onClear={clearHistory}
+            />
           </aside>
-        )}
-      </section>
-
-      {mode === 'simple' && (
-        <aside className="history-panel" aria-label="Calculation history">
-          <HistoryList items={history} variant="simple" onClear={clearHistory} />
-        </aside>
-      )}
+        </section>
+      </div>
     </main>
   );
 }
