@@ -43,3 +43,12 @@ Open the local URL printed by Vite (normally `http://localhost:5173`). Vite prox
 cd backend && go test ./...
 cd frontend && npm test
 ```
+
+To generate test coverage reports:
+
+```bash
+cd backend && go test -cover ./...
+cd frontend && npm run test:coverage
+```
+
+Go command prints package coverage in the terminal. Vitest prints a frontend coverage summary and writes detailed coverage files under `frontend/coverage/`.
