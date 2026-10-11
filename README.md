@@ -14,6 +14,17 @@ A full-stack calculator built with a React and TypeScript frontend and a Go REST
 - Switch between light and dark themes using the theme button. The selected theme is saved in browser local storage.
 - Validates expressions and displays calculation and API errors.
 
+## Screenshots
+
+### Light mode
+![Calculator in light mode](screenshots/calculator-light.png)
+
+### Dark mode
+![Calculator in dark mode](screenshots/calculator-dark.png)
+
+### Developer mode
+![Calculator developer mode with request details](screenshots/developer-mode.png)
+
 ## Architecture
 
 The React frontend sends the complete expression as JSON to the Go backend. The backend parses and evaluates it, then returns either a numeric result or a JSON error.
