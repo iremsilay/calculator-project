@@ -11,6 +11,7 @@ A full-stack calculator built with a React and TypeScript frontend and a Go REST
 - Includes a developer mode with request and response details, HTTP status, round-trip duration, recent request history, and a cURL command.
 - Includes one-click evaluation scenarios for common results and edge cases.
 - Provides light and dark themes and a responsive interface.
+- Switch between light and dark themes using the theme button. The selected theme is saved in browser local storage.
 - Validates expressions and displays calculation and API errors.
 
 ## Architecture
@@ -91,6 +92,14 @@ Build the production image from the repository root:
 ```bash
 docker build -t full-stack-calculator .
 ```
+
+Before running the Docker commands, make sure Docker Desktop is installed, open and fully started. Docker Desktop must be running because it provides the Docker engine used to build and run the application.
+
+You can check that Docker is ready by running:
+
+```bash
+docker info
+
 
 Start the application:
 
