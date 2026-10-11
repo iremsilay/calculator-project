@@ -11,7 +11,9 @@ import (
 	"github.com/iremsilay/calculator-project/backend/api"
 )
 
-func main() {
+// newApp builds the HTTP routes and static-file handler. Keeping this separate
+// from main makes the application's routing testable without opening a port.
+func newApp(staticDir string) http.Handler {
 	apiHandler := api.NewHandler()
 	app := http.NewServeMux()
 
@@ -21,7 +23,6 @@ func main() {
 	app.Handle("/health", apiHandler)
 	app.Handle("/calculate", apiHandler)
 
-	staticDir := os.Getenv("STATIC_DIR")
 	if staticDir == "" {
 		staticDir = "frontend/dist"
 	}
@@ -38,9 +39,14 @@ func main() {
 		staticFiles.ServeHTTP(w, r)
 	}))
 
+	return app
+}
+
+func main() {
+	staticDir := os.Getenv("STATIC_DIR")
 	server := &http.Server{
 		Addr:         ":8080",
-		Handler:      app,
+		Handler:      newApp(staticDir),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  60 * time.Second,
